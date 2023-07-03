@@ -4,17 +4,17 @@ import { notFoundError } from '@/errors';
 import addressRepository, { CreateAddressParams } from '@/repositories/address-repository';
 import enrollmentRepository, { CreateEnrollmentParams } from '@/repositories/enrollment-repository';
 import { exclude } from '@/utils/prisma-utils';
-import { ViaCEPAddress } from '../../protocols';
 
 // TODO - Receber o CEP por parâmetro nesta função.
 async function getAddressFromCEP(cep: string) {
   // FIXME: está com CEP fixo!
   const result = await request.get(`${process.env.VIA_CEP_API}/${cep}/json/`);
 
-  if (result.data === 200 || result.data.erro) {
+  // FIXME: não estamos interessados em todos os campos
+
+  if (!result.data || result.data.erro) {
     throw notFoundError();
   }
-  // FIXME: não estamos interessados em todos os campos
 
   const { logradouro, complemento, bairro, localidade, uf } = result.data;
   return { logradouro, complemento, bairro, cidade: localidade, uf };
@@ -52,7 +52,7 @@ async function createOrUpdateEnrollmentWithAddress(params: CreateOrUpdateEnrollm
 
   const result = await request.get(`${process.env.VIA_CEP_API}/${address.cep}/json/`);
 
-  if (result.data === 200 || result.data.erro) {
+  if (!result.data || result.data.erro) {
     throw notFoundError();
   }
 
@@ -60,6 +60,7 @@ async function createOrUpdateEnrollmentWithAddress(params: CreateOrUpdateEnrollm
 
   await addressRepository.upsert(newEnrollment.id, address, address);
 }
+
 
 function getAddressForUpsert(address: CreateAddressParams) {
   return {
